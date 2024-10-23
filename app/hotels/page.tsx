@@ -1,89 +1,262 @@
 'use client'
 
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import Map, { Marker, Popup } from 'react-map-gl'
+import 'mapbox-gl/dist/mapbox-gl.css'
 import { Button } from "@/components/ui/button"
-import { Star, MapPin } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Separator } from "@/components/ui/separator"
+import { MapPin, Star, Heart, Filter } from "lucide-react"
+
+const MAPBOX_TOKEN = 'pk.eyJ1IjoiZHJvem94NjYiLCJhIjoiY20yM25wY2ZiMDd5NTJqcHRpbDBleXNwaSJ9.aiFPwOjSP-WJ0d9qckQJoQ'
 
 const hotels = [
-  { id: '1', name: 'Luxury Palace', description: 'Experience unparalleled luxury in the heart of the city.', imageUrl: 'https://www.svgrepo.com/show/338007/accommodation-hotel-bed-sleeping.svg', rating: 5, price: 500 },
-  { id: '2', name: 'Seaside Resort', description: 'Relax and unwind with stunning ocean views.', imageUrl: 'https://www.svgrepo.com/show/338007/accommodation-hotel-bed-sleeping.svg', rating: 4, price: 300 },
-  { id: '3', name: 'Mountain Retreat', description: 'Escape to nature in our cozy mountain lodge.', imageUrl: 'https://www.svgrepo.com/show/338007/accommodation-hotel-bed-sleeping.svg', rating: 4, price: 250 },
-  { id: '4', name: 'Urban Oasis', description: 'Modern comfort in the bustling city center.', imageUrl: 'https://www.svgrepo.com/show/338007/accommodation-hotel-bed-sleeping.svg', rating: 4, price: 200 },
-  { id: '5', name: 'Historic Inn', description: 'Step back in time in our beautifully restored inn.', imageUrl: 'https://www.svgrepo.com/show/338007/accommodation-hotel-bed-sleeping.svg', rating: 3, price: 150 },
+  { id: '1', name: 'Luxury Palace', city: 'Paris', lat: 48.8584, lon: 2.2945, rating: 8.9, price: 250, image: '/placeholder.svg?height=100&width=100', amenities: ['pool', 'spa', 'wifi'] },
+  { id: '2', name: 'Seaside Resort', city: 'Rome', lat: 41.8902, lon: 12.4922, rating: 9.2, price: 180, image: '/placeholder.svg?height=100&width=100', amenities: ['beach', 'restaurant', 'wifi'] },
+  { id: '3', name: 'Mountain Retreat', city: 'New York', lat: 40.6892, lon: -74.0445, rating: 8.7, price: 150, image: '/placeholder.svg?height=100&width=100', amenities: ['hiking', 'spa', 'wifi'] },
+  { id: '4', name: 'City Center Hotel', city: 'London', lat: 51.5074, lon: -0.1278, rating: 9.0, price: 200, image: '/placeholder.svg?height=100&width=100', amenities: ['gym', 'restaurant', 'wifi'] },
+  { id: '5', name: 'Cozy Inn', city: 'Tokyo', lat: 35.6762, lon: 139.6503, rating: 8.5, price: 120, image: '/placeholder.svg?height=100&width=100', amenities: ['parking', 'wifi'] },
 ]
 
-export default function Hotels() {
+const amenities = [
+  { id: 'pool', label: 'Pool' },
+  { id: 'spa', label: 'Spa' },
+  { id: 'wifi', label: 'WiFi' },
+  { id: 'gym', label: 'Gym' },
+  { id: 'restaurant', label: 'Restaurant' },
+]
+
+const cities = Array.from(new Set(hotels.map(hotel => hotel.city)))
+
+// Add this type definition at the top of your file
+type Hotel = typeof hotels[0];
+
+export default function HotelsPage() {
+  const [viewport, setViewport] = useState({
+    latitude: 0,
+    longitude: 0,
+    zoom: 1
+  })
+  const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null)
+  const [filteredHotels, setFilteredHotels] = useState(hotels)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
+  const [selectedCities, setSelectedCities] = useState<string[]>([])
+  const [sortBy, setSortBy] = useState('recommended')
+
+  useEffect(() => {
+    const filtered = hotels.filter(hotel => 
+      hotel.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      (selectedCities.length === 0 || selectedCities.includes(hotel.city)) &&
+      selectedAmenities.every(amenity => hotel.amenities.includes(amenity))
+    )
+
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortBy === 'price-low') return a.price - b.price
+      if (sortBy === 'price-high') return b.price - a.price
+      if (sortBy === 'rating') return b.rating - a.rating
+      return 0 // Default: recommended
+    })
+
+    setFilteredHotels(sorted)
+  }, [searchTerm, selectedAmenities, selectedCities, sortBy])
+
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="px-4 lg:px-6 h-14 flex items-center justify-between">
+      <header className="px-4 lg:px-6 h-14 flex items-center justify-between bg-white shadow-md">
         <Link className="flex items-center justify-center" href="/">
-          <MapPin className="h-6 w-6 mr-2" />
+          <MapPin className="h-6 w-6 mr-2 text-primary" />
           <span className="text-lg font-bold">TravelGuide</span>
         </Link>
         <nav className="flex gap-4 sm:gap-6">
-          <Link className="text-sm font-medium hover:underline underline-offset-4" href="/">
+          <Link className="text-sm font-medium hover:text-primary transition-colors" href="/">
             Home
           </Link>
-          <Link className="text-sm font-medium hover:underline underline-offset-4" href="/destinations">
-            Destinations
+          <Link className="text-sm font-medium hover:text-primary transition-colors" href="/explore">
+            Explore
           </Link>
-          <Link className="text-sm font-medium hover:underline underline-offset-4" href="/map">
-            Explore Map
+          <Link className="text-sm font-medium hover:text-primary transition-colors" href="/hotels">
+            Hotels
           </Link>
         </nav>
       </header>
-      <main className="flex-1">
-        <div className="container mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold mb-8">Featured Hotels</h1>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {hotels.map((hotel) => (
-              <Card key={hotel.id} className="overflow-hidden">
-                <CardHeader className="p-0">
+      <main className="flex-1 p-4">
+        <div className="mb-4 flex flex-wrap items-center gap-4">
+          <Input
+            placeholder="Search hotels"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-xs"
+          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline">
+                <Filter className="mr-2 h-4 w-4" />
+                Filters
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium leading-none">Cities</h4>
+                  <Separator />
+                  {cities.map((city) => (
+                    <div key={city} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`city-${city}`}
+                        checked={selectedCities.includes(city)}
+                        onCheckedChange={(checked) => {
+                          setSelectedCities(
+                            checked
+                              ? [...selectedCities, city]
+                              : selectedCities.filter((c) => c !== city)
+                          )
+                        }}
+                      />
+                      <label htmlFor={`city-${city}`}>{city}</label>
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium leading-none">Amenities</h4>
+                  <Separator />
+                  {amenities.map((amenity) => (
+                    <div key={amenity.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={amenity.id}
+                        checked={selectedAmenities.includes(amenity.id)}
+                        onCheckedChange={(checked) => {
+                          setSelectedAmenities(
+                            checked
+                              ? [...selectedAmenities, amenity.id]
+                              : selectedAmenities.filter((a) => a !== amenity.id)
+                          )
+                        }}
+                      />
+                      <label htmlFor={amenity.id}>{amenity.label}</label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="recommended">Recommended</SelectItem>
+              <SelectItem value="price-low">Price: Low to High</SelectItem>
+              <SelectItem value="price-high">Price: High to Low</SelectItem>
+              <SelectItem value="rating">Rating</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-1 space-y-4 max-h-[calc(100vh-12rem)] overflow-y-auto pr-4">
+            {filteredHotels.map((hotel) => (
+              <Card key={hotel.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                <CardContent className="p-4 flex">
                   <Image
-                    src={hotel.imageUrl}
+                    src={hotel.image}
                     alt={hotel.name}
-                    width={600}
-                    height={400}
-                    className="w-full h-48 object-cover"
+                    width={100}
+                    height={100}
+                    className="rounded-md mr-4"
                   />
-                </CardHeader>
-                <CardContent className="p-4">
-                  <CardTitle className="text-xl mb-2">{hotel.name}</CardTitle>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{hotel.description}</p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`w-4 h-4 ${star <= hotel.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'}`}
-                        />
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold">{hotel.name}</h3>
+                    <p className="text-sm text-gray-600">{hotel.city}</p>
+                    <div className="flex items-center mt-1">
+                      <Star className="w-4 h-4 text-yellow-400 mr-1" />
+                      <span>{hotel.rating}</span>
+                    </div>
+                    <p className="mt-1 text-sm text-gray-600">From ${hotel.price} per night</p>
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {hotel.amenities.map((amenity) => (
+                        <span key={amenity} className="text-xs bg-gray-100 px-2 py-1 rounded-full">
+                          {amenity}
+                        </span>
                       ))}
                     </div>
-                    <p className="font-bold">${hotel.price}/night</p>
                   </div>
-                </CardContent>
-                <CardFooter className="p-4">
-                  <Button asChild className="w-full">
-                    <Link href={`/hotels/${hotel.id}`}>View Details</Link>
+                  <Button variant="ghost" size="icon" className="self-start ml-2">
+                    <Heart className="h-4 w-4" />
+                    <span className="sr-only">Add to favorites</span>
                   </Button>
-                </CardFooter>
+                </CardContent>
               </Card>
             ))}
           </div>
+          <div className="lg:col-span-2">
+            <Card className="h-[calc(100vh-12rem)]">
+              <CardContent className="p-0 h-full">
+                <Map
+                  {...viewport}
+                  onMove={evt => setViewport(evt.viewState)}
+                  style={{width: '100%', height: '100%'}}
+                  mapStyle="mapbox://styles/mapbox/streets-v11"
+                  mapboxAccessToken={MAPBOX_TOKEN}
+                >
+                  {filteredHotels.map((hotel) => (
+                    <Marker
+                      key={hotel.id}
+                      latitude={hotel.lat}
+                      longitude={hotel.lon}
+                      onClick={e => {
+                        e.originalEvent.stopPropagation()
+                        setSelectedHotel(hotel)
+                      }}
+                    >
+                      <MapPin className="text-primary" />
+                    </Marker>
+                  ))}
+                  {selectedHotel && (
+                    <Popup
+                      latitude={selectedHotel.lat}
+                      longitude={selectedHotel.lon}
+                      onClose={() => setSelectedHotel(null)}
+                      closeOnClick={false}
+                    >
+                      <div className="p-2">
+                        <h3 className="text-lg font-semibold">{selectedHotel.name}</h3>
+                        <p className="text-sm text-gray-600">{selectedHotel.city}</p>
+                        <div className="flex items-center mt-1">
+                          <Star className="w-4 h-4 text-yellow-400 mr-1" />
+                          <span>{selectedHotel.rating}</span>
+                        </div>
+                        <p className="mt-1 text-sm">From ${selectedHotel.price} per night</p>
+                      </div>
+                    </Popup>
+                  )}
+                </Map>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </main>
-      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-gray-500 dark:text-gray-400">© 2023 TravelGuide Inc. All rights reserved.</p>
-        <nav className="sm:ml-auto flex gap-4 sm:gap-6">
-          <Link className="text-xs hover:underline underline-offset-4" href="/terms">
-            Terms of Service
-          </Link>
-          <Link className="text-xs hover:underline underline-offset-4" href="/privacy">
-            Privacy
-          </Link>
-        </nav>
+      <footer className="bg-white shadow-md mt-8">
+        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 md:flex md:items-center md:justify-between lg:px-8">
+          <div className="flex justify-center space-x-6 md:order-2">
+            <Link href="/terms" className="text-sm text-gray-500 hover:text-gray-600">
+              Terms
+            </Link>
+            <Link href="/privacy" className="text-sm text-gray-500 hover:text-gray-600">
+              Privacy
+            </Link>
+          </div>
+          <div className="mt-8 md:mt-0 md:order-1">
+            <p className="text-center text-sm text-gray-500">
+              &copy; 2023 TravelGuide, Inc. All rights reserved.
+            </p>
+          </div>
+        </div>
       </footer>
     </div>
   )

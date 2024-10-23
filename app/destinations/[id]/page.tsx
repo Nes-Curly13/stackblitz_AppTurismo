@@ -27,10 +27,10 @@ export async function generateStaticParams() {
 
 export default function DestinationDetails() {
   const { id } = useParams()
-  const [destination, setDestination] = useState(null)
+  const [destination, setDestination] = useState<{ id: string; name: string; description: string; imageUrl: string; rating: number; type: string; } | null>(null) // Updated type
 
   useEffect(() => {
-    const fetchedDestination = destinations.find(dest => dest.id === id)
+    const fetchedDestination = destinations.find(dest => dest.id === id) || null // Ensure it defaults to null
     setDestination(fetchedDestination)
   }, [id])
 
