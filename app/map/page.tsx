@@ -28,25 +28,32 @@ const categories = [
   { value: 'attraction', label: 'Attractions' },
 ]
 
+// Define a type for nearby places
+type NearbyPlace = {
+  text: string;
+  place_name: string;
+  center: [number, number]; // Assuming center is an array of [longitude, latitude]
+}
+
 export default function ExplorePage() {
   const [viewport, setViewport] = useState({
     latitude: 0,
     longitude: 0,
     zoom: 1.5,
   })
-  const [selectedPlace, setSelectedPlace] = useState(null)
+  const [selectedPlace, setSelectedPlace] = useState<{ id: string; name: string; lat: number; lon: number } | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [route, setRoute] = useState(null)
-  const [startPoint, setStartPoint] = useState(null)
-  const [endPoint, setEndPoint] = useState(null)
-  const [nearbyPlaces, setNearbyPlaces] = useState([])
-  const [selectedCategory, setSelectedCategory] = useState('')
+  const [startPoint, setStartPoint] = useState<{ lng: number; lat: number } | null>(null)
+  const [endPoint, setEndPoint] = useState<{ lng: number; lat: number } | null>(null)
+  const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([])
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // Add this line to define selectedCategory
 
   const filteredPlaces = places.filter(place =>
     place.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const handleMapClick = useCallback((event) => {
+  const handleMapClick = useCallback((event: { lngLat: { lng: number; lat: number } }) => {
     const { lngLat } = event
     if (!startPoint) {
       setStartPoint(lngLat)
@@ -210,7 +217,7 @@ export default function ExplorePage() {
             </div>
             <div className="mt-4">
               <h2 className="text-xl font-semibold mb-2">Find Nearby Places</h2>
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <Select value={selectedCategory || ''} onValueChange={setSelectedCategory}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -231,7 +238,7 @@ export default function ExplorePage() {
                   {nearbyPlaces.map((place, index) => (
                     <Card key={index}>
                       <CardHeader>
-                        <CardTitle>{place.text}</CardTitle>
+                        <CardTitle>{place.place_name}</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <p>{place.place_name}</p>

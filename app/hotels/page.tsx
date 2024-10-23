@@ -32,7 +32,10 @@ const amenities = [
   { id: 'restaurant', label: 'Restaurant' },
 ]
 
-const cities = [...new Set(hotels.map(hotel => hotel.city))]
+const cities = Array.from(new Set(hotels.map(hotel => hotel.city)))
+
+// Add this type definition at the top of your file
+type Hotel = typeof hotels[0];
 
 export default function HotelsPage() {
   const [viewport, setViewport] = useState({
@@ -40,11 +43,11 @@ export default function HotelsPage() {
     longitude: 0,
     zoom: 1
   })
-  const [selectedHotel, setSelectedHotel] = useState(null)
+  const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null)
   const [filteredHotels, setFilteredHotels] = useState(hotels)
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedAmenities, setSelectedAmenities] = useState([])
-  const [selectedCities, setSelectedCities] = useState([])
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
+  const [selectedCities, setSelectedCities] = useState<string[]>([])
   const [sortBy, setSortBy] = useState('recommended')
 
   useEffect(() => {
