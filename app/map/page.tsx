@@ -23,9 +23,9 @@ const places = [
 ]
 
 const categories = [
-  { value: 'restaurant', label: 'Restaurants' },
-  { value: 'hotel', label: 'Hotels' },
-  { value: 'attraction', label: 'Attractions' },
+  { value: 'gastronomico', label: 'Gastronomico' },
+  { value: 'hoteles', label: 'Hoteles' },
+  { value: 'atraccion', label: 'Atraccion' },
 ]
 
 export default function ExplorePage() {
@@ -122,7 +122,7 @@ export default function ExplorePage() {
               mapStyle="mapbox://styles/mapbox/streets-v11"
               mapboxAccessToken={MAPBOX_TOKEN}
             >
-              <GeolocateControl position="top-left" />
+              <GeolocateControl position="top-left"  />
               <FullscreenControl position="top-left" />
               <NavigationControl position="top-left" />
               {filteredPlaces.map((place) => (
