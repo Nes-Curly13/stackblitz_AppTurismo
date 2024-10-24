@@ -71,6 +71,7 @@ export default function ExplorePage() {
       const { data, error } = await supabase
         .from('SITIO TURISTICO')
         .select('*')
+        .range(0,10)
 
       if (error) {
         console.error('Error fetching destinations:', error)
