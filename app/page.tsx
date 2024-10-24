@@ -43,6 +43,7 @@ export default function Home() {
       const { data, error } = await supabase
         .from('SITIO TURISTICO')  // Asegúrate de que sea el nombre de tu tabla
         .select('*')
+        .range(0,12)
 
 
       if (error) {
