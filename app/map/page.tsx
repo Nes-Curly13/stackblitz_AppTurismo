@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import Map, { Marker, Popup, NavigationControl, FullscreenControl, GeolocateControl, Source, Layer } from 'react-map-gl'
+import Map, { Marker, Popup, NavigationControl, FullscreenControl, GeolocateControl } from 'react-map-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,25 +15,33 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MapPin, Star, Heart, Filter, Search } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
+import { supabase } from '@/lib/supabase'; 
+
+
 
 const MAPBOX_TOKEN = 'pk.eyJ1IjoiZHJvem94NjYiLCJhIjoiY20yM25wY2ZiMDd5NTJqcHRpbDBleXNwaSJ9.aiFPwOjSP-WJ0d9qckQJoQ'
 
-const places = [
-  { id: '1', name: 'Eiffel Tower', country: 'France', lat: 48.8584, lon: 2.2945, rating: 4.7, image: '/placeholder.svg?height=100&width=100', description: 'Iconic iron lattice tower on the Champ de Mars in Paris.', categories: ['landmark', 'culture'] },
-  { id: '2', name: 'Colosseum', country: 'Italy', lat: 41.8902, lon: 12.4922, rating: 4.5, image: '/placeholder.svg?height=100&width=100', description: 'Oval amphitheatre in the centre of Rome, Italy.', categories: ['history', 'architecture'] },
-  { id: '3', name: 'Statue of Liberty', country: 'USA', lat: 40.6892, lon: -74.0445, rating: 4.6, image: '/placeholder.svg?height=100&width=100', description: 'Colossal neoclassical sculpture on Liberty Island in New York Harbor.', categories: ['landmark', 'history'] },
-  { id: '4', name: 'Taj Mahal', country: 'India', lat: 27.1751, lon: 78.0421, rating: 4.8, image: '/placeholder.svg?height=100&width=100', description: 'Ivory-white marble mausoleum on the right bank of the river Yamuna in Agra, India.', categories: ['architecture', 'culture'] },
-  { id: '5', name: 'Great Wall of China', country: 'China', lat: 40.4319, lon: 116.5704, rating: 4.9, image: '/placeholder.svg?height=100&width=100', description: 'Series of fortifications and walls across the historical northern borders of ancient Chinese states.', categories: ['history', 'landmark'] },
-]
+interface DestinationFromDB {
+  id: string;
+  Titulo: string;
+  Descripcio: string | null;
+  Imagen_pri: string | null;
+  Valoracion: string;
+  Categoria: string;
+  latitud: number;
+  longitud: number;
+}
 
-const categories = [
-  { id: 'landmark', label: 'Landmark' },
-  { id: 'culture', label: 'Culture' },
-  { id: 'history', label: 'History' },
-  { id: 'architecture', label: 'Architecture' },
-]
-
-const countries = Array.from(new Set(places.map(place => place.country)))
+interface Destination {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  rating: number;
+  type: string;
+  lat: number;
+  lon: number;
+}
 
 type NearbyPlace = {
   text: string;
@@ -47,24 +55,48 @@ export default function ExplorePage() {
     longitude: 0,
     zoom: 1.5,
   })
-  const [selectedPlace, setSelectedPlace] = useState(null)
-  const [filteredPlaces, setFilteredPlaces] = useState(places)
+  const [selectedPlace, setSelectedPlace] = useState<Destination | null>(null)
+  const [places, setPlaces] = useState<Destination[]>([])
+  const [filteredPlaces, setFilteredPlaces] = useState<Destination[]>([])
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategories, setSelectedCategories] = useState([])
-  const [selectedCountries, setSelectedCountries] = useState([])
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [selectedCountry, setSelectedCountry] = useState('all')
   const [sortBy, setSortBy] = useState('recommended')
-  const [route, setRoute] = useState(null)
-  const [startPoint, setStartPoint] = useState(null)
-  const [endPoint, setEndPoint] = useState(null)
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([])
   const [activeTab, setActiveTab] = useState('places')
   const [nearbyCategory, setNearbyCategory] = useState('')
 
   useEffect(() => {
+    const fetchDestinations = async () => {
+      const { data, error } = await supabase
+        .from('SITIO TURISTICO')
+        .select('*')
+
+      if (error) {
+        console.error('Error fetching destinations:', error)
+      } else {
+        const mappedData: Destination[] = (data as DestinationFromDB[]).map(dest => ({
+          id: dest.id,
+          name: dest.Titulo,
+          description: dest.Descripcio || 'Sin descripcion disponible',
+          imageUrl: dest.Imagen_pri|| '/assets/images/OIP.jpg',
+          rating: parseFloat(dest.Valoracion), // Convertimos la valoración a número
+          type: dest.Categoria,
+          lat: dest.latitud,
+          lon: dest.longitud,
+        }))
+        setPlaces(mappedData)
+        setFilteredPlaces(mappedData)
+      }
+    }
+
+    fetchDestinations()
+  }, [])
+
+  useEffect(() => {
     const filtered = places.filter(place => 
       place.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      (selectedCountries.length === 0 || selectedCountries.includes(place.country)) &&
-      (selectedCategories.length === 0 || selectedCategories.some(cat => place.categories.includes(cat)))
+      (selectedCategories.length === 0 || selectedCategories.includes(place.type))
     )
 
     const sorted = [...filtered].sort((a, b) => {
@@ -74,27 +106,9 @@ export default function ExplorePage() {
     })
 
     setFilteredPlaces(sorted)
-  }, [searchTerm, selectedCategories, selectedCountries, sortBy])
+  }, [searchTerm, selectedCategories, sortBy, places])
 
-  const handleMapClick = useCallback((event) => {
-    const { lngLat } = event
-    if (!startPoint) {
-      setStartPoint(lngLat)
-    } else if (!endPoint) {
-      setEndPoint(lngLat)
-    }
-  }, [startPoint, endPoint])
-
-  useEffect(() => {
-    if (startPoint && endPoint) {
-      const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${startPoint.lng},${startPoint.lat};${endPoint.lng},${endPoint.lat}?geometries=geojson&access_token=${MAPBOX_TOKEN}`
-      fetch(url)
-        .then(response => response.json())
-        .then(data => {
-          setRoute(data.routes[0].geometry)
-        })
-    }
-  }, [startPoint, endPoint])
+  const categories = Array.from(new Set(places.map(place => place.type)))
 
   const findNearbyPlaces = () => {
     if (viewport.latitude && viewport.longitude && nearbyCategory) {
@@ -145,42 +159,22 @@ export default function ExplorePage() {
             <PopoverContent className="w-80">
               <div className="grid gap-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium leading-none">Countries</h4>
-                  <Separator />
-                  {countries.map((country) => (
-                    <div key={country} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`country-${country}`}
-                        checked={selectedCountries.includes(country)}
-                        onCheckedChange={(checked) => {
-                          setSelectedCountries(
-                            checked
-                              ? [...selectedCountries, country]
-                              : selectedCountries.filter((c) => c !== country)
-                          )
-                        }}
-                      />
-                      <label htmlFor={`country-${country}`}>{country}</label>
-                    </div>
-                  ))}
-                </div>
-                <div className="space-y-2">
                   <h4 className="font-medium leading-none">Categories</h4>
                   <Separator />
                   {categories.map((category) => (
-                    <div key={category.id} className="flex items-center space-x-2">
+                    <div key={category} className="flex items-center space-x-2">
                       <Checkbox
-                        id={category.id}
-                        checked={selectedCategories.includes(category.id)}
+                        id={category}
+                        checked={selectedCategories.includes(category)}
                         onCheckedChange={(checked) => {
                           setSelectedCategories(
                             checked
-                              ? [...selectedCategories, category.id]
-                              : selectedCategories.filter((c) => c !== category.id)
+                              ? [...selectedCategories, category]
+                              : selectedCategories.filter((c) => c !== category)
                           )
                         }}
                       />
-                      <label htmlFor={category.id}>{category.label}</label>
+                      <label htmlFor={category}>{category}</label>
                     </div>
                   ))}
                 </div>
@@ -212,8 +206,8 @@ export default function ExplorePage() {
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.label}
+                        <SelectItem key={category} value={category}>
+                          {category}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -235,7 +229,7 @@ export default function ExplorePage() {
                   <Card key={place.id} className="mb-4 cursor-pointer hover:shadow-md transition-shadow">
                     <CardContent className="p-4 flex">
                       <Image
-                        src={place.image}
+                        src={place.imageUrl}
                         alt={place.name}
                         width={100}
                         height={100}
@@ -243,17 +237,10 @@ export default function ExplorePage() {
                       />
                       <div className="flex-1">
                         <h3 className="text-lg font-semibold">{place.name}</h3>
-                        <p className="text-sm text-gray-600">{place.country}</p>
+                        <p className="text-sm text-gray-600">{place.type}</p>
                         <div className="flex items-center mt-1">
                           <Star className="w-4 h-4 text-yellow-400 mr-1" />
-                          <span>{place.rating}</span>
-                        </div>
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {place.categories.map((category) => (
-                            <span key={category} className="text-xs bg-gray-100 px-2 py-1 rounded-full">
-                              {category}
-                            </span>
-                          ))}
+                          <span>{place.rating.toFixed(1)}</span>
                         </div>
                       </div>
                       <Button variant="ghost" size="icon" className="self-start ml-2">
@@ -286,11 +273,9 @@ export default function ExplorePage() {
                 <Map
                   {...viewport}
                   onMove={evt => setViewport(evt.viewState)}
-                  onClick={handleMapClick}
                   style={{width: '100%', height: '100%'}}
                   mapStyle="mapbox://styles/mapbox/streets-v11"
                   mapboxAccessToken={MAPBOX_TOKEN}
-                
                 >
                   <GeolocateControl position="top-left" />
                   <FullscreenControl position="top-left" />
@@ -326,44 +311,13 @@ export default function ExplorePage() {
                     >
                       <div className="p-2">
                         <h3 className="text-lg font-semibold">{selectedPlace.name}</h3>
-                        <p className="text-sm text-gray-600">{selectedPlace.country}</p>
+                        <p className="text-sm text-gray-600">{selectedPlace.type}</p>
                         <div className="flex items-center mt-1">
                           <Star className="w-4 h-4 text-yellow-400 mr-1" />
-                          <span>{selectedPlace.rating}</span>
+                          <span>{selectedPlace.rating.toFixed(1)}</span>
                         </div>
                       </div>
                     </Popup>
-                  )}
-                  {startPoint && (
-                    <Marker latitude={startPoint.lat} longitude={startPoint.lng}>
-                      <MapPin className="text-green-500" />
-                    </Marker>
-                  )}
-                  {endPoint && (
-                    <Marker latitude={endPoint.lat} longitude={endPoint.lng}>
-                      <MapPin className="text-blue-500" />
-                    </Marker>
-                  )}
-                  {route && (
-                    <Source type="geojson" data={{
-                      type: 'Feature',
-                      properties: {},
-                      geometry: route
-                    }}>
-                      <Layer
-                        id="route"
-                        type="line"
-                        source="route"
-                        layout={{
-                          "line-join": "round",
-                          "line-cap": "round"
-                        }}
-                        paint={{
-                          "line-color": "#3b82f6",
-                          "line-width": 4
-                        }}
-                      />
-                    </Source>
                   )}
                   {nearbyPlaces.map((place, index) => (
                     <Marker
@@ -383,7 +337,7 @@ export default function ExplorePage() {
       <footer className="bg-white shadow-md mt-8">
         <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 md:flex md:items-center md:justify-between lg:px-8">
           <div className="flex justify-center space-x-6 md:order-2">
-            <Link href="/terms" className="text-sm text-gray-500 hover:text-gray-600">
+            <Link  href="/terms" className="text-sm text-gray-500 hover:text-gray-600">
               Terms
             </Link>
             <Link href="/privacy" className="text-sm text-gray-500 hover:text-gray-600">
