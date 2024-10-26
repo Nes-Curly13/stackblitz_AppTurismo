@@ -1,16 +1,41 @@
 "use client"
 import { useSitio } from '@/hooks/use-sitio';
 import { useEffect } from 'react';
+import MainSitioCard from '@/components/main/sitioTuristicoCard'
 
-export default function Prueba(){
-  const {sitios, getSitios} = useSitio()
-  useEffect(()=>{
+export default function Prueba() {
+  const { sitios, getSitios } = useSitio()
+  useEffect(() => {
     getSitios()
-  },[]);
+  }, []);
+  console.log(sitios);
+  return (
+    
+    
+    <main>
+      {
+        sitios.map(sitio => {
+          const {
+            id,
+            Titulo:name ,
+            Descripcion:descripcion,
+            Valoracion:valoracion,
+            Imagen_pri:Imagen
+          }=sitio
+          return <MainSitioCard 
+          key={sitio.id} 
+          Titulo={name}
+          Descripcion={descripcion}
+          Valoracion={valoracion}
+          Imagen_pri={Imagen|| '/assets/images/OIP.jpg'}
+          
+          />
+        })
+      }
 
-  return <div>
-    <ul>
-      {sitios.map((sitio:any, index:number) =><li key={index}>{sitio.Titulo}</li>)}
-    </ul>
-  </div>
+    </main>
+
+
+  );
+
 }

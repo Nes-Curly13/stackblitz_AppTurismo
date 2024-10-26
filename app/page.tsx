@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Search, ChevronLeft, ChevronRight, MapPin } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { supabase } from '@/lib/supabase';  
+import { supabase } from '@/lib/supabase';
+import { useSitio } from '@/hooks/use-sitio'
+import MainSitioCard from '@/components/main/sitioTuristicoCard'
 
 
 // Interfaz de los datos de la base de datos
@@ -18,7 +20,7 @@ interface DestinationFromDB {
   Categoria: string;
   Imagen_pri: string;
   Valoracion: string;
-  Descripcio?: string;
+  Descripcion?: string;
 }
 
 // Interfaz de los datos mapeados
@@ -38,37 +40,15 @@ export default function Home() {
   const [destinations, setDestinations] = useState<Destination[]>([]) // Usamos el tipo Destination para el estado
 
   // Fetch de destinos desde Supabase
+  const { sitios, getSitios } = useSitio()
   useEffect(() => {
-    const fetchDestinations = async () => {
-      const { data, error } = await supabase
-        .from('SITIO TURISTICO')  // Asegúrate de que sea el nombre de tu tabla
-        .select('*')
-        .range(0,10)
-
-
-      if (error) {
-        console.error('Error fetching destinations:', error)
-      } else {
-        // Mapeamos los datos usando la interfaz definida
-        const mappedData: Destination[] = (data as DestinationFromDB[]).map(dest => ({
-          id: dest.id,
-          name: dest.Titulo,
-          description: dest.Descripcio || 'Sin descripcion disponible',
-          imageUrl: dest.Imagen_pri|| '/assets/images/OIP.jpg',
-          rating: parseFloat(dest.Valoracion), // Convertimos la valoración a número
-          type: dest.Categoria,
-        }))
-        setDestinations(mappedData)
-      }
-    }
-
-    fetchDestinations()
-  }, [])
-
-  const filteredDestinations = destinations.filter(dest =>
-    dest.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-    (filterType === 'All' || dest.type === filterType)
-  )
+    getSitios()
+  }, []);
+  // filter recomendations but the ones that are on the cache of app
+  // const filteredDestinations = destinations.filter(dest =>
+  //   dest.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+  //   (filterType === 'All' || dest.type === filterType)
+  // )
 
   const featuredDestinations = destinations.slice(0, 3)
 
@@ -187,32 +167,25 @@ export default function Home() {
           <div className="container px-4 md:px-6">
             <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-center mb-12">Popular Destinations</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredDestinations.map((destination) => (
-                <Card key={destination.id} className="overflow-hidden">
-                  <CardHeader className="p-0">
-                    <Image
-                      src={destination.imageUrl}
-                      alt={destination.name}
-                      width={600}
-                      height={400}
-                      className="w-full h-48 object-cover"
-                    />
-                  </CardHeader>
-                  <CardContent className="p-4">
-                    <CardTitle className="text-xl mb-2">{destination.name}</CardTitle>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{destination.description}</p>
-                    <div className="flex items-center">
-                      <span className="text-yellow-500 mr-1">★</span>
-                      <span>{destination.rating.toFixed(1)}</span>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="p-4">
-                    <Button asChild className="w-full">
-                      <Link href={`/destinations/${destination.id}`}>Learn More</Link>
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
+            {
+        sitios.map(sitio => {
+          const {
+            id,
+            Titulo:name ,
+            Descripcion:descripcion,
+            Valoracion:valoracion,
+            Imagen_pri:Imagen
+          }=sitio
+          return <MainSitioCard 
+          key={sitio.id} 
+          Titulo={name}
+          Descripcion={descripcion}
+          Valoracion={valoracion}
+          Imagen_pri={Imagen|| '/assets/images/OIP.jpg'}
+          
+          />
+        })
+      }
             </div>
           </div>
         </section>

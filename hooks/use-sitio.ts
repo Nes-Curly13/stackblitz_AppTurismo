@@ -9,7 +9,8 @@ export const useSitio= ()=>{
         try {
             const { data, error } = await supabase
                 .from('SITIO TURISTICO')
-                .select('*')
+                .select('id,Titulo,Descripcion,Valoracion,Imagen_pri')
+                .order('Valoracion', {ascending:true})
                 .range(0,9)
     
                 if(data){
