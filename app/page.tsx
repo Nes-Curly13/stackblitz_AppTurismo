@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from '@/lib/supabase';
 import { useSitio } from '@/hooks/use-sitio'
 import MainSitioCard from '@/components/main/sitioTuristicoCard'
+import MainCarrouselCard from '@/components/main/CarrouselSitioCard'
 
 
 // Interfaz de los datos de la base de datos
@@ -35,22 +36,26 @@ interface Destination {
 
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterType, setFilterType] = useState('All')
+  const [filterType, setFilterType] = useState('')
   const [carouselIndex, setCarouselIndex] = useState(0)
-  const [destinations, setDestinations] = useState<Destination[]>([]) // Usamos el tipo Destination para el estado
+ 
 
   // Fetch de destinos desde Supabase
   const { sitios, getSitios } = useSitio()
   useEffect(() => {
-    getSitios()
-  }, []);
+    getSitios(filterType !== "All" ? filterType : undefined)
+  }, [filterType]);
+
+  useEffect(() => {
+    console.log(sitios);
+  }, [sitios]);
   // filter recomendations but the ones that are on the cache of app
   // const filteredDestinations = destinations.filter(dest =>
   //   dest.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
   //   (filterType === 'All' || dest.type === filterType)
   // )
 
-  const featuredDestinations = destinations.slice(0, 3)
+  const featuredDestinations = sitios.slice(0, 3)
 
   const nextSlide = () => {
     setCarouselIndex((prevIndex) => (prevIndex + 1) % featuredDestinations.length)
@@ -65,7 +70,7 @@ export default function Home() {
       <header className="px-4 lg:px-6 h-14 flex items-center justify-between">
         <Link className="flex items-center justify-center" href="/">
           <MapPin className="h-6 w-6 mr-2" />
-          <span className="text-lg font-bold">TravelGuide</span>
+          <span className="text-lg font-bold">TurValleGuide</span>
         </Link>
         <nav className="flex gap-4 sm:gap-6">
           <Link className="text-sm font-medium hover:underline underline-offset-4" href="/destinations">
@@ -114,7 +119,7 @@ export default function Home() {
                       <SelectItem value="All">Todos los tipos</SelectItem>
                       <SelectItem value="gastronomico">Gastronomico</SelectItem>
                       <SelectItem value="natural">Natural</SelectItem>
-                      <SelectItem value="hoteles">Hoteles</SelectItem>
+                      <SelectItem value="hosteleria">Hoteles</SelectItem>
                     </SelectContent>
                   </Select>
                 </form>
@@ -128,30 +133,30 @@ export default function Home() {
             <div className="relative">
               <div className="overflow-hidden">
                 <div className="flex transition-transform duration-300 ease-in-out" style={{ transform: `translateX(-${carouselIndex * 100}%)` }}>
-                  {featuredDestinations.map((destination) => (
-                    <div key={destination.id} className="w-full flex-shrink-0">
-                      <Card className="overflow-hidden">
-                        <CardHeader className="p-0">
-                          <Image
-                            src={destination.imageUrl}
-                            alt={destination.name}
-                            width={600}
-                            height={400}
-                            className="w-full h-64 object-cover"
-                          />
-                        </CardHeader>
-                        <CardContent className="p-4">
-                          <CardTitle className="text-xl mb-2">{destination.name}</CardTitle>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{destination.description}</p>
-                        </CardContent>
-                        <CardFooter className="p-4">
-                          <Button asChild>
-                            <Link href={`/destinations/${destination.id}`}>Explorar</Link>
-                          </Button>
-                        </CardFooter>
-                      </Card>
-                    </div>
-                  ))}
+                  
+                  {sitios.map( (sitio) => {
+                    
+                    const {
+                      id:id,
+                      Titulo: name,
+                      Descripcion: descripcion,
+                      Categoria: categoria,
+                      Valoracion: valoracion,
+                      Imagen_pri: Imagen,
+                    } = sitio
+
+                    return (
+                      <div key={id} className="w-full flex-shrink-0">
+                      <MainCarrouselCard key={id} id={id} Titulo={name} 
+                      Descripcion={descripcion || "sin descripcion disponible"}
+                      Valoracion={valoracion || "sin puntuar"}
+                      Categoria={categoria}
+                      Imagen_pri={Imagen || "/assets/images/OIP.jpg"}>
+                      </MainCarrouselCard>
+                      </div>
+                    )
+                  }
+                  )}
                 </div>
               </div>
               <Button variant="outline" className="absolute top-1/2 left-4 transform -translate-y-1/2" onClick={prevSlide}>
@@ -163,32 +168,38 @@ export default function Home() {
             </div>
           </div>
         </section>
-        <section className="w-full py-12 md:py-24 lg:py-32">
-          <div className="container px-4 md:px-6">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-center mb-12">Popular Destinations</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {
-        sitios.map(sitio => {
+        <section className="w-full py-12 md:py-24 lg:py-32 justify-center items-center">
+  <div className="container px-4 md:px-6">
+    <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-center mb-12">
+    Destinos Populares 
+    </h2>
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {sitios.map((sitio) => {
           const {
-            id,
-            Titulo:name ,
-            Descripcion:descripcion,
-            Valoracion:valoracion,
-            Imagen_pri:Imagen
-          }=sitio
-          return <MainSitioCard 
-          key={sitio.id} 
-          Titulo={name}
-          Descripcion={descripcion}
-          Valoracion={valoracion}
-          Imagen_pri={Imagen|| '/assets/images/OIP.jpg'}
-          
-          />
-        })
-      }
-            </div>
-          </div>
-        </section>
+            id:id,
+            Titulo: name,
+            Descripcion: descripcion,
+            Categoria: categoria,
+            Valoracion: valoracion,
+            Imagen_pri: Imagen,
+          } = sitio;
+          return (
+            <MainSitioCard
+              key={sitio.id}
+              Titulo={name}
+              Descripcion={descripcion || "sin descripcion disponible"}
+              Categoria={categoria}
+              Valoracion={valoracion || "sin puntuar"}
+              Imagen_pri={Imagen || "/assets/images/OIP.jpg"}
+            />
+          );
+        })}
+      </div>
+    </div>
+  </div>
+</section>
+
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
         <p className="text-xs text-gray-500 dark:text-gray-400">© 2023 TravelGuide Inc. All rights reserved.</p>

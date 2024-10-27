@@ -7,12 +7,13 @@ import { Button } from "../ui/button"
 
 
 export default function MainSitioCard({
-    Titulo, Descripcion, Valoracion, Imagen_pri
+    Titulo, Descripcion,Categoria, Valoracion, Imagen_pri
 }: {
 
     Titulo: string,
     Descripcion: string,
-    Valoracion: number,
+    Categoria:string,
+    Valoracion: string,
     Imagen_pri: string
 }) {
 
@@ -32,8 +33,9 @@ export default function MainSitioCard({
                     <CardTitle className="text-xl mb-2" > {Titulo} </CardTitle>
                     < p className="text-sm text-gray-600 dark:text-gray-400 mb-2" > {Descripcion} </p>
                     < div className="flex items-center" >
-                        <span className="text-yellow-500 mr-1" >★</span>
+                        <span className="text-yellow-500 mr-1 " >★</span>
                         < span > {Valoracion} </span>
+                        < span > {Categoria} </span>
                     </div>
                 </CardContent>
                 <CardFooter className="p-4">
