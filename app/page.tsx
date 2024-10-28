@@ -38,13 +38,19 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('')
   const [carouselIndex, setCarouselIndex] = useState(0)
- 
+  // Parámetros de paginación
+  const ITEMS_PER_PAGE = 6;
+  const [currentPage, setCurrentPage] = useState(0);
 
   // Fetch de destinos desde Supabase
   const { sitios, getSitios } = useSitio()
   useEffect(() => {
-    getSitios(filterType !== "All" ? filterType : undefined)
-  }, [filterType]);
+    const start = currentPage * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE - 1;
+    getSitios(filterType !== "All" ? filterType : undefined, start, end)
+    console.log(start,end);
+    
+  }, [filterType, currentPage]);
 
   useEffect(() => {
     console.log(sitios);
@@ -64,6 +70,10 @@ export default function Home() {
   const prevSlide = () => {
     setCarouselIndex((prevIndex) => (prevIndex - 1 + featuredDestinations.length) % featuredDestinations.length)
   }
+
+  // Funciones de navegación
+  const goToNextPage = () => setCurrentPage((prevPage) => prevPage + 1)
+  const goToPreviousPage = () => setCurrentPage((prevPage) => Math.max(prevPage - 1, 0))
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -121,7 +131,7 @@ export default function Home() {
                       <SelectItem value="natural">Natural</SelectItem>
                       <SelectItem value="hosteleria">Hoteles</SelectItem>
                       <SelectItem value="cultural">Cultural</SelectItem>
-                      
+
                     </SelectContent>
                   </Select>
                 </form>
@@ -135,11 +145,11 @@ export default function Home() {
             <div className="relative">
               <div className="overflow-hidden">
                 <div className="flex transition-transform duration-300 ease-in-out" style={{ transform: `translateX(-${carouselIndex * 100}%)` }}>
-                  
-                  {sitios.map( (sitio) => {
-                    
+
+                  {sitios.map((sitio) => {
+
                     const {
-                      id:id,
+                      id: id,
                       Titulo: name,
                       Descripcion: descripcion,
                       Categoria: categoria,
@@ -149,18 +159,19 @@ export default function Home() {
 
                     return (
                       <div key={id} className="w-full flex-shrink-0">
-                      <MainCarrouselCard key={id} id={id} 
-                      Titulo={name} 
-                      Descripcion={descripcion || "sin descripcion disponible"}
-                      Valoracion={valoracion || "sin puntuar"}
-                      Categoria={categoria}
-                      Imagen_pri={Imagen || "/assets/images/OIP.jpg"}>
-                      </MainCarrouselCard>
+                        <MainCarrouselCard key={id} id={id}
+                          Titulo={name}
+                          Descripcion={descripcion || "sin descripcion disponible"}
+                          Valoracion={valoracion || "sin puntuar"}
+                          Categoria={categoria}
+                          Imagen_pri={Imagen || "/assets/images/OIP.jpg"}>
+                        </MainCarrouselCard>
                       </div>
                     )
                   }
                   )}
                 </div>
+
               </div>
               <Button variant="outline" className="absolute top-1/2 left-4 transform -translate-y-1/2" onClick={prevSlide}>
                 <ChevronLeft className="h-6 w-6" />
@@ -172,36 +183,54 @@ export default function Home() {
           </div>
         </section>
         <section className="w-full py-12 md:py-24 lg:py-32 justify-center items-center">
-  <div className="container px-4 md:px-6">
-    <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-center mb-12">
-    Destinos Populares 
-    </h2>
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {sitios.map((sitio) => {
-          const {
-            id:id,
-            Titulo: name,
-            Descripcion: descripcion,
-            Categoria: categoria,
-            Valoracion: valoracion,
-            Imagen_pri: Imagen,
-          } = sitio;
-          return (
-            <MainSitioCard
-              key={sitio.id}
-              Titulo={name}
-              Descripcion={descripcion || "sin descripcion disponible"}
-              Categoria={categoria}
-              Valoracion={valoracion || "sin puntuar"}
-              Imagen_pri={Imagen || "/assets/images/OIP.jpg"}
-            />
-          );
-        })}
-      </div>
-    </div>
-  </div>
-</section>
+          <div className="container px-4 md:px-6">
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-center mb-12">
+              Destinos Populares
+            </h2>
+            <div className="flex items-center justify-center min-h-screen">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {sitios.map((sitio) => {
+                  const {
+                    id: id,
+                    Titulo: name,
+                    Descripcion: descripcion,
+                    Categoria: categoria,
+                    Valoracion: valoracion,
+                    Imagen_pri: Imagen,
+                  } = sitio;
+                  return (
+                    <MainSitioCard
+                      key={sitio.id}
+                      Titulo={name}
+                      Descripcion={descripcion || "sin descripcion disponible"}
+                      Categoria={categoria}
+                      Valoracion={valoracion || "sin puntuar"}
+                      Imagen_pri={Imagen || "/assets/images/OIP.jpg"}
+                    />
+                  );
+                })}
+              </div>
+
+            </div>
+            <div className="flex justify-center mt-8 gap-4">
+              <Button
+                variant="outline"
+                onClick={goToPreviousPage}
+                disabled={currentPage === 0}
+              >
+                Anterior
+              </Button>
+              <span>Página {currentPage + 1}</span>
+              <Button
+                variant="outline"
+                onClick={goToNextPage}
+                disabled={sitios.length < ITEMS_PER_PAGE}
+              >
+                Siguiente
+              </Button>
+            </div>
+          </div>
+        </section>
 
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">

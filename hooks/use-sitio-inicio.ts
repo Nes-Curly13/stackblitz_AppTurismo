@@ -4,14 +4,14 @@ import { supabase } from "@/lib/supabase";
 export const useSitio = () => {
   const [sitios, setSitios] = useState<any[]>([]);
 
-  const getSitios = async (categoria?: string) => {
+  const getSitios = async (categoria?: string, start: number = 0, end: number = 8) => {
     try {
       // Inicializa la consulta base
       let query = supabase
         .from("SITIO TURISTICO")
         .select("id,Titulo,Categoria,Descripcion,Valoracion,Imagen_pri,latitud,longitud")
         .order("Valoracion", { ascending: false })
-        .range(0, 8);
+        .range(start, end);
 
       // Aplica filtro si se proporciona una categoría
       if (categoria) {
