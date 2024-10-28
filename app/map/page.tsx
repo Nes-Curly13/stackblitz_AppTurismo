@@ -15,25 +15,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MapPin, Star, Heart, Filter, Search } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
+import SitioMapCard from '@/components/map/SitioMapCard'
+import { useSitioMap } from '@/hooks/use-sitio-map'
 
 const MAPBOX_TOKEN = 'pk.eyJ1IjoiZHJvem94NjYiLCJhIjoiY20yM25wY2ZiMDd5NTJqcHRpbDBleXNwaSJ9.aiFPwOjSP-WJ0d9qckQJoQ'
 
-const places = [
-  { id: '1', name: 'Eiffel Tower', country: 'France', lat: 48.8584, lon: 2.2945, rating: 4.7, image: '/placeholder.svg?height=100&width=100', description: 'Iconic iron lattice tower on the Champ de Mars in Paris.', categories: ['landmark', 'culture'] },
-  { id: '2', name: 'Colosseum', country: 'Italy', lat: 41.8902, lon: 12.4922, rating: 4.5, image: '/placeholder.svg?height=100&width=100', description: 'Oval amphitheatre in the centre of Rome, Italy.', categories: ['history', 'architecture'] },
-  { id: '3', name: 'Statue of Liberty', country: 'USA', lat: 40.6892, lon: -74.0445, rating: 4.6, image: '/placeholder.svg?height=100&width=100', description: 'Colossal neoclassical sculpture on Liberty Island in New York Harbor.', categories: ['landmark', 'history'] },
-  { id: '4', name: 'Taj Mahal', country: 'India', lat: 27.1751, lon: 78.0421, rating: 4.8, image: '/placeholder.svg?height=100&width=100', description: 'Ivory-white marble mausoleum on the right bank of the river Yamuna in Agra, India.', categories: ['architecture', 'culture'] },
-  { id: '5', name: 'Great Wall of China', country: 'China', lat: 40.4319, lon: 116.5704, rating: 4.9, image: '/placeholder.svg?height=100&width=100', description: 'Series of fortifications and walls across the historical northern borders of ancient Chinese states.', categories: ['history', 'landmark'] },
-]
 
-const categories = [
-  { id: 'landmark', label: 'Landmark' },
-  { id: 'culture', label: 'Culture' },
-  { id: 'history', label: 'History' },
-  { id: 'architecture', label: 'Architecture' },
-]
-
-const countries = Array.from(new Set(places.map(place => place.country)))
 
 type NearbyPlace = {
   text: string;
@@ -43,38 +30,38 @@ type NearbyPlace = {
 
 export default function ExplorePage() {
   const [viewport, setViewport] = useState({
-    latitude: 0,
-    longitude: 0,
-    zoom: 1.5,
+    latitude: 3.4367,
+    longitude: -76.32658,
+    zoom: 7.5,
   })
+
   const [selectedPlace, setSelectedPlace] = useState(null)
-  const [filteredPlaces, setFilteredPlaces] = useState(places)
+  const { sitios, getSitios } = useSitioMap()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategories, setSelectedCategories] = useState([])
-  const [selectedCountries, setSelectedCountries] = useState([])
+  const [selectedmunicipios, setSelectedmunicipios] = useState([])
   const [sortBy, setSortBy] = useState('recommended')
   const [route, setRoute] = useState(null)
   const [startPoint, setStartPoint] = useState(null)
   const [endPoint, setEndPoint] = useState(null)
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([])
-  const [activeTab, setActiveTab] = useState('places')
+  const [activeTab, setActiveTab] = useState('sitios')
   const [nearbyCategory, setNearbyCategory] = useState('')
 
+
+  //llamada a los datos 
   useEffect(() => {
-    const filtered = places.filter(place => 
-      place.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      (selectedCountries.length === 0 || selectedCountries.includes(place.country)) &&
-      (selectedCategories.length === 0 || selectedCategories.some(cat => place.categories.includes(cat)))
-    )
+    getSitios()
+  }, []);
+  //llamada a los datos 
 
-    const sorted = [...filtered].sort((a, b) => {
-      if (sortBy === 'rating-high') return b.rating - a.rating
-      if (sortBy === 'rating-low') return a.rating - b.rating
-      return 0 // Default: recommended
-    })
+  //Imprimir en consola datos
+  useEffect(() => {
+    console.log(sitios);
+  }, [sitios]);
+  //Imprimir en consola datos
 
-    setFilteredPlaces(sorted)
-  }, [searchTerm, selectedCategories, selectedCountries, sortBy])
+
 
   const handleMapClick = useCallback((event) => {
     const { lngLat } = event
@@ -96,17 +83,8 @@ export default function ExplorePage() {
     }
   }, [startPoint, endPoint])
 
-  const findNearbyPlaces = () => {
-    if (viewport.latitude && viewport.longitude && nearbyCategory) {
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${nearbyCategory}.json?proximity=${viewport.longitude},${viewport.latitude}&limit=5&access_token=${MAPBOX_TOKEN}`
-      fetch(url)
-        .then(response => response.json())
-        .then(data => {
-          setNearbyPlaces(data.features)
-          setActiveTab('nearby')
-        })
-    }
-  }
+
+  //elemento a corregir para encontrar sitios cercanos pero que actualmente no lo tengo implementado
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -117,20 +95,20 @@ export default function ExplorePage() {
         </Link>
         <nav className="flex gap-4 sm:gap-6">
           <Link className="text-sm font-medium hover:text-primary transition-colors" href="/">
-            Home
+            Inicio
           </Link>
           <Link className="text-sm font-medium hover:text-primary transition-colors" href="/destinations">
-            Destinations
+            Destinos
           </Link>
           <Link className="text-sm font-medium hover:text-primary transition-colors" href="/hotels">
-            Hotels
+            Hoteles
           </Link>
         </nav>
       </header>
       <main className="flex-1 p-4">
         <div className="mb-4 flex flex-wrap items-center gap-4">
           <Input
-            placeholder="Search destinations"
+            placeholder="Buscar sitios"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-xs"
@@ -139,50 +117,20 @@ export default function ExplorePage() {
             <PopoverTrigger asChild>
               <Button variant="outline">
                 <Filter className="mr-2 h-4 w-4" />
-                Filters
+                Filtros
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80">
               <div className="grid gap-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium leading-none">Countries</h4>
+                  <h4 className="font-medium leading-none">municipios</h4>
                   <Separator />
-                  {countries.map((country) => (
-                    <div key={country} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`country-${country}`}
-                        checked={selectedCountries.includes(country)}
-                        onCheckedChange={(checked) => {
-                          setSelectedCountries(
-                            checked
-                              ? [...selectedCountries, country]
-                              : selectedCountries.filter((c) => c !== country)
-                          )
-                        }}
-                      />
-                      <label htmlFor={`country-${country}`}>{country}</label>
-                    </div>
-                  ))}
+  
                 </div>
                 <div className="space-y-2">
                   <h4 className="font-medium leading-none">Categories</h4>
                   <Separator />
-                  {categories.map((category) => (
-                    <div key={category.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={category.id}
-                        checked={selectedCategories.includes(category.id)}
-                        onCheckedChange={(checked) => {
-                          setSelectedCategories(
-                            checked
-                              ? [...selectedCategories, category.id]
-                              : selectedCategories.filter((c) => c !== category.id)
-                          )
-                        }}
-                      />
-                      <label htmlFor={category.id}>{category.label}</label>
-                    </div>
-                  ))}
+                
                 </div>
               </div>
             </PopoverContent>
@@ -200,71 +148,40 @@ export default function ExplorePage() {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-1 space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Find Nearby</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex space-x-2">
-                  <Select value={nearbyCategory} onValueChange={setNearbyCategory}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button onClick={findNearbyPlaces}>
-                    <Search className="mr-2 h-4 w-4" />
-                    Search
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="places">Places</TabsTrigger>
-                <TabsTrigger value="nearby">Nearby</TabsTrigger>
+                <TabsTrigger value="sitios">Sitios</TabsTrigger>
+                <TabsTrigger value="cercanos">Cercanos</TabsTrigger>
               </TabsList>
-              <TabsContent value="places" className="max-h-[calc(100vh-20rem)] overflow-y-auto">
-                {filteredPlaces.map((place) => (
-                  <Card key={place.id} className="mb-4 cursor-pointer hover:shadow-md transition-shadow">
-                    <CardContent className="p-4 flex">
-                      <Image
-                        src={place.image}
-                        alt={place.name}
-                        width={100}
-                        height={100}
-                        className="rounded-md mr-4"
-                      />
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold">{place.name}</h3>
-                        <p className="text-sm text-gray-600">{place.country}</p>
-                        <div className="flex items-center mt-1">
-                          <Star className="w-4 h-4 text-yellow-400 mr-1" />
-                          <span>{place.rating}</span>
-                        </div>
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {place.categories.map((category) => (
-                            <span key={category} className="text-xs bg-gray-100 px-2 py-1 rounded-full">
-                              {category}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="icon" className="self-start ml-2">
-                        <Heart className="h-4 w-4" />
-                        <span className="sr-only">Add to favorites</span>
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
+              <TabsContent value="sitios" className="max-h-[calc(100vh-20rem)] overflow-y-auto">
+                {sitios.map((place) => {
+                  const {
+                    id: id,
+                    Titulo: name,
+                    Descripcion: descripcion,
+                    Categoria: categoria,
+                    Municipio:Municipio,
+                    Valoracion: valoracion,
+                    Imagen_pri: Imagen,
+                  } = place
+                  return (
+                    <SitioMapCard
+                      key={id}
+                      id={id}
+                      Municipio={Municipio}
+                      Titulo={name}
+                      Descripcion={descripcion || "sin descripcion disponible"}
+                      Valoracion={valoracion || "sin puntuar"}
+                      Categoria={categoria}
+                      Imagen_pri={Imagen || "/assets/images/OIP.jpg"} >
+
+                    </SitioMapCard>
+                  )
+                })}
               </TabsContent>
-              <TabsContent value="nearby" className="max-h-[calc(100vh-20rem)] overflow-y-auto">
+
+              <TabsContent value="cercanos" className="max-h-[calc(100vh-20rem)] overflow-y-auto">
                 {nearbyPlaces.length > 0 ? (
                   nearbyPlaces.map((place, index) => (
                     <Card key={index} className="mb-4">
@@ -287,36 +204,53 @@ export default function ExplorePage() {
                   {...viewport}
                   onMove={evt => setViewport(evt.viewState)}
                   onClick={handleMapClick}
-                  style={{width: '100%', height: '100%'}}
+                  style={{ width: '100%', height: '100%' }}
                   mapStyle="mapbox://styles/mapbox/streets-v11"
                   mapboxAccessToken={MAPBOX_TOKEN}
-                
+
                 >
                   <GeolocateControl position="top-left" />
                   <FullscreenControl position="top-left" />
                   <NavigationControl position="top-left" />
-                  {filteredPlaces.map((place) => (
-                    <Marker
-                      key={place.id}
-                      latitude={place.lat}
-                      longitude={place.lon}
-                      onClick={e => {
-                        e.originalEvent.stopPropagation()
-                        setSelectedPlace(place)
-                      }}
-                    >
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <MapPin className="text-primary" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{place.name}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </Marker>
-                  ))}
+                  {sitios.map((place) => {
+
+                    console.log(place);
+                    
+                    const {
+                      id: id,
+                      Titulo: name,
+                      Descripcion: descripcion,
+                      Categoria: categoria,
+                      Municipio:Municipio,
+                      Valoracion: valoracion,
+                      Imagen_pri: Imagen,
+                      latitud:latitud,
+                      longitud:longitud,
+                    } = place
+                      
+                      //aqui se anade el marcador
+                      return <Marker
+                        key={id}
+                        latitude={latitud}
+                        longitude={longitud}
+                        onClick={e => {
+                          e.originalEvent.stopPropagation()
+                          setSelectedPlace(place)
+                        }}
+                      >
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <MapPin className="text-primary" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{place.name}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </Marker>
+                    
+                  })}
                   {selectedPlace && (
                     <Popup
                       latitude={selectedPlace.lat}
@@ -326,7 +260,7 @@ export default function ExplorePage() {
                     >
                       <div className="p-2">
                         <h3 className="text-lg font-semibold">{selectedPlace.name}</h3>
-                        <p className="text-sm text-gray-600">{selectedPlace.country}</p>
+                        <p className="text-sm text-gray-600">{selectedPlace.municipio}</p>
                         <div className="flex items-center mt-1">
                           <Star className="w-4 h-4 text-yellow-400 mr-1" />
                           <span>{selectedPlace.rating}</span>

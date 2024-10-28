@@ -9,7 +9,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Search, ChevronLeft, ChevronRight, MapPin } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { supabase } from '@/lib/supabase';
-import { useSitio } from '@/hooks/use-sitio'
+import { useSitio } from '@/hooks/use-sitio-inicio'
 import MainSitioCard from '@/components/main/sitioTuristicoCard'
 import MainCarrouselCard from '@/components/main/CarrouselSitioCard'
 
@@ -70,7 +70,7 @@ export default function Home() {
       <header className="px-4 lg:px-6 h-14 flex items-center justify-between">
         <Link className="flex items-center justify-center" href="/">
           <MapPin className="h-6 w-6 mr-2" />
-          <span className="text-lg font-bold">TurValleGuide</span>
+          <span className="text-lg font-bold">Valle travel</span>
         </Link>
         <nav className="flex gap-4 sm:gap-6">
           <Link className="text-sm font-medium hover:underline underline-offset-4" href="/destinations">
@@ -120,6 +120,8 @@ export default function Home() {
                       <SelectItem value="gastronomico">Gastronomico</SelectItem>
                       <SelectItem value="natural">Natural</SelectItem>
                       <SelectItem value="hosteleria">Hoteles</SelectItem>
+                      <SelectItem value="cultural">Cultural</SelectItem>
+                      
                     </SelectContent>
                   </Select>
                 </form>
@@ -147,7 +149,8 @@ export default function Home() {
 
                     return (
                       <div key={id} className="w-full flex-shrink-0">
-                      <MainCarrouselCard key={id} id={id} Titulo={name} 
+                      <MainCarrouselCard key={id} id={id} 
+                      Titulo={name} 
                       Descripcion={descripcion || "sin descripcion disponible"}
                       Valoracion={valoracion || "sin puntuar"}
                       Categoria={categoria}

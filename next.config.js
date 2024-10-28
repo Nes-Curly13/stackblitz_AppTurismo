@@ -5,7 +5,20 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: { unoptimized: true,
-    domains: ['lh5.googleusercontent.com', 'lh5.googleusercontent.com','lh5.googleusercontent.com/p','lh5'],
+    remotePatterns: [
+      
+      {
+        protocol: 'https',
+        hostname: '**.googleusercontent.com',
+        search: '',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.',
+        search: '',
+      },
+    ],
+    
    },
   
 };

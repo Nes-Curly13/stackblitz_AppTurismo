@@ -1,5 +1,5 @@
 "use client"
-import { useSitio } from '@/hooks/use-sitio';
+import { useSitio } from '@/hooks/use-sitio-inicio';
 import { useEffect } from 'react';
 import MainSitioCard from '@/components/main/sitioTuristicoCard'
 

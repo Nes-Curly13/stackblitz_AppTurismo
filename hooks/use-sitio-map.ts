@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-export const useSitio = () => {
+export const useSitioMap = () => {
   const [sitios, setSitios] = useState<any[]>([]);
 
   const getSitios = async (categoria?: string) => {
@@ -9,7 +9,7 @@ export const useSitio = () => {
       // Inicializa la consulta base
       let query = supabase
         .from("SITIO TURISTICO")
-        .select("id,Titulo,Categoria,Descripcion,Valoracion,Imagen_pri")
+        .select("id,Titulo,Categoria,Descripcion,Valoracion,Imagen_pri,latitud,longitud")
         .order("Valoracion", { ascending: false })
         .range(0, 8);
 
