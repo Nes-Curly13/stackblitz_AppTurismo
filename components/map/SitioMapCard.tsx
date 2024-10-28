@@ -1,27 +1,33 @@
 'use client'
 
-import Link from "next/link"
 import Image from "next/image"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "../ui/card"
-import { Button } from "../ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Heart, Star } from "lucide-react"
 
-
-export default function SitioMapCard({
-    id, Titulo, Descripcion, Categoria, Municipio, Valoracion, Imagen_pri
-}: {
+interface SitioMapCardProps {
     id: number,
     Titulo: string,
     Descripcion: string,
     Categoria: string,
     Municipio: string,
     Valoracion: string,
-    Imagen_pri: string
-}) {
+    Imagen_pri: string,
+    latitud: number,
+    longitud: number,
+    onCardClick: (id: number, lat: number, lon: number) => void
+}
+
+export default function SitioMapCard({
+    id, Titulo, Descripcion, Categoria, Municipio, Valoracion, Imagen_pri, latitud, longitud, onCardClick
+}: SitioMapCardProps) {
 
     return (
-
-        <Card key={id} className="mb-4 cursor-pointer hover:shadow-md transition-shadow">
+        <Card 
+            key={id} 
+            className="mb-4 cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => onCardClick(id, latitud, longitud)}
+        >
             <CardContent className="p-4 flex">
                 <Image
                     src={Imagen_pri}
@@ -38,11 +44,9 @@ export default function SitioMapCard({
                         <span>{Valoracion}</span>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1">
-
-                        <span key={Categoria} className="text-xs bg-gray-100 px-2 py-1 rounded-full">
+                        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
                             {Categoria}
                         </span>
-
                     </div>
                 </div>
                 <Button variant="ghost" size="icon" className="self-start ml-2">
@@ -51,10 +55,5 @@ export default function SitioMapCard({
                 </Button>
             </CardContent>
         </Card>
-
-
-
     )
-
 }
-

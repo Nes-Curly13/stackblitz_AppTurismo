@@ -2,25 +2,21 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
-import Map, { Marker, Popup, NavigationControl, FullscreenControl, GeolocateControl, Source, Layer } from 'react-map-gl'
+import Map, { Marker, Popup, NavigationControl, FullscreenControl, GeolocateControl, Source, Layer, ViewState } from 'react-map-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MapPin, Star, Heart, Filter, Search } from "lucide-react"
-import { Checkbox } from "@/components/ui/checkbox"
+import { MapPin, Star, Filter, Search } from "lucide-react"
 import SitioMapCard from '@/components/map/SitioMapCard'
 import { useSitioMap } from '@/hooks/use-sitio-map'
 
 const MAPBOX_TOKEN = 'pk.eyJ1IjoiZHJvem94NjYiLCJhIjoiY20yM25wY2ZiMDd5NTJqcHRpbDBleXNwaSJ9.aiFPwOjSP-WJ0d9qckQJoQ'
-
-
 
 type NearbyPlace = {
   text: string;
@@ -29,10 +25,18 @@ type NearbyPlace = {
 }
 
 export default function ExplorePage() {
-  const [viewport, setViewport] = useState({
+  const [viewport, setViewport] = useState<ViewState>({
     latitude: 3.4367,
     longitude: -76.32658,
     zoom: 7.5,
+    bearing: 0,
+    pitch: 0,
+    padding: {
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0
+    }
   })
 
   const [selectedPlace, setSelectedPlace] = useState(null)
@@ -48,20 +52,35 @@ export default function ExplorePage() {
   const [activeTab, setActiveTab] = useState('sitios')
   const [nearbyCategory, setNearbyCategory] = useState('')
 
-
-  //llamada a los datos 
   useEffect(() => {
     getSitios()
-  }, []);
-  //llamada a los datos 
+  }, [getSitios])
 
-  //Imprimir en consola datos
   useEffect(() => {
-    console.log(sitios);
-  }, [sitios]);
-  //Imprimir en consola datos
+    if (selectedPlace) {
+      setViewport(prevViewport => ({
+        ...prevViewport,
+        latitude: selectedPlace.latitud,
+        longitude: selectedPlace.longitud,
+        zoom: 14,
+        transitionDuration: 500
+      }));
+    }
+  }, [selectedPlace]);
 
-
+  const handleCardClick = useCallback((id: number, lat: number, lon: number) => {
+    const place = sitios.find(sitio => sitio.id === id)
+    if (place) {
+      setSelectedPlace(place)
+      setViewport(prevViewport => ({
+        ...prevViewport,
+        latitude: lat,
+        longitude: lon,
+        zoom: 14,
+        transitionDuration: 500
+      }))
+    }
+  }, [sitios])
 
   const handleMapClick = useCallback((event) => {
     const { lngLat } = event
@@ -82,9 +101,6 @@ export default function ExplorePage() {
         })
     }
   }, [startPoint, endPoint])
-
-
-  //elemento a corregir para encontrar sitios cercanos pero que actualmente no lo tengo implementado
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -125,12 +141,10 @@ export default function ExplorePage() {
                 <div className="space-y-2">
                   <h4 className="font-medium leading-none">municipios</h4>
                   <Separator />
-  
                 </div>
                 <div className="space-y-2">
                   <h4 className="font-medium leading-none">Categories</h4>
                   <Separator />
-                
                 </div>
               </div>
             </PopoverContent>
@@ -148,39 +162,28 @@ export default function ExplorePage() {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-1 space-y-4">
-
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="sitios">Sitios</TabsTrigger>
                 <TabsTrigger value="cercanos">Cercanos</TabsTrigger>
               </TabsList>
               <TabsContent value="sitios" className="max-h-[calc(100vh-20rem)] overflow-y-auto">
-                {sitios.map((place) => {
-                  const {
-                    id: id,
-                    Titulo: name,
-                    Descripcion: descripcion,
-                    Categoria: categoria,
-                    Municipio:Municipio,
-                    Valoracion: valoracion,
-                    Imagen_pri: Imagen,
-                  } = place
-                  return (
-                    <SitioMapCard
-                      key={id}
-                      id={id}
-                      Municipio={Municipio}
-                      Titulo={name}
-                      Descripcion={descripcion || "sin descripcion disponible"}
-                      Valoracion={valoracion || "sin puntuar"}
-                      Categoria={categoria}
-                      Imagen_pri={Imagen || "/assets/images/OIP.jpg"} >
-
-                    </SitioMapCard>
-                  )
-                })}
+                {sitios.map((place) => (
+                  <SitioMapCard
+                    key={place.id}
+                    id={place.id}
+                    Titulo={place.Titulo}
+                    Descripcion={place.Descripcion || "sin descripcion disponible"}
+                    Categoria={place.Categoria}
+                    Municipio={place.Municipio}
+                    Valoracion={place.Valoracion || "sin puntuar"}
+                    Imagen_pri={place.Imagen_pri || "/assets/images/OIP.jpg"}
+                    latitud={place.latitud}
+                    longitud={place.longitud}
+                    onCardClick={handleCardClick}
+                  />
+                ))}
               </TabsContent>
-
               <TabsContent value="cercanos" className="max-h-[calc(100vh-20rem)] overflow-y-auto">
                 {nearbyPlaces.length > 0 ? (
                   nearbyPlaces.map((place, index) => (
@@ -207,63 +210,41 @@ export default function ExplorePage() {
                   style={{ width: '100%', height: '100%' }}
                   mapStyle="mapbox://styles/mapbox/streets-v11"
                   mapboxAccessToken={MAPBOX_TOKEN}
-
                 >
                   <GeolocateControl position="top-left" />
                   <FullscreenControl position="top-left" />
                   <NavigationControl position="top-left" />
-                  {sitios.map((place) => {
-
-                    console.log(place);
-                    
-                    const {
-                      id: id,
-                      Titulo: name,
-                      Descripcion: descripcion,
-                      Categoria: categoria,
-                      Municipio:Municipio,
-                      Valoracion: valoracion,
-                      Imagen_pri: Imagen,
-                      latitud:latitud,
-                      longitud:longitud,
-                    } = place
-                      
-                      //aqui se anade el marcador
-                      return <Marker
-                        key={id}
-                        latitude={latitud}
-                        longitude={longitud}
-                        onClick={e => {
-                          e.originalEvent.stopPropagation()
-                          setSelectedPlace(place)
-                        }}
-                      >
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <MapPin className="text-primary" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{place.name}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </Marker>
-                    
-                  })}
+                  {sitios.map((place) => (
+                    <Marker
+                      key={place.id}
+                      latitude={place.latitud}
+                      longitude={place.longitud}
+                    >
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <MapPin className="text-primary" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{place.Titulo}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </Marker>
+                  ))}
                   {selectedPlace && (
                     <Popup
-                      latitude={selectedPlace.lat}
-                      longitude={selectedPlace.lon}
+                      latitude={selectedPlace.latitud}
+                      longitude={selectedPlace.longitud}
                       onClose={() => setSelectedPlace(null)}
                       closeOnClick={false}
                     >
                       <div className="p-2">
-                        <h3 className="text-lg font-semibold">{selectedPlace.name}</h3>
-                        <p className="text-sm text-gray-600">{selectedPlace.municipio}</p>
+                        <h3 className="text-lg font-semibold">{selectedPlace.Titulo}</h3>
+                        <p className="text-sm text-gray-600">{selectedPlace.Municipio}</p>
                         <div className="flex items-center mt-1">
                           <Star className="w-4 h-4 text-yellow-400 mr-1" />
-                          <span>{selectedPlace.rating}</span>
+                          <span>{selectedPlace.Valoracion}</span>
                         </div>
                       </div>
                     </Popup>
@@ -299,6 +280,7 @@ export default function ExplorePage() {
                       />
                     </Source>
                   )}
+                  
                   {nearbyPlaces.map((place, index) => (
                     <Marker
                       key={index}
