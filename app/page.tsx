@@ -8,7 +8,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Search, ChevronLeft, ChevronRight, MapPin } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { supabase } from '@/lib/supabase';  
+import { supabase } from '@/lib/supabase';
+import { useSitio } from '@/hooks/use-sitio-inicio'
+import MainSitioCard from '@/components/main/sitioTuristicoCard'
+import MainCarrouselCard from '@/components/main/CarrouselSitioCard'
 
 
 // Interfaz de los datos de la base de datos
@@ -18,7 +21,7 @@ interface DestinationFromDB {
   Categoria: string;
   Imagen_pri: string;
   Valoracion: string;
-  Descripcio?: string;
+  Descripcion?: string;
 }
 
 // Interfaz de los datos mapeados
@@ -33,44 +36,32 @@ interface Destination {
 
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterType, setFilterType] = useState('All')
+  const [filterType, setFilterType] = useState('')
   const [carouselIndex, setCarouselIndex] = useState(0)
-  const [destinations, setDestinations] = useState<Destination[]>([]) // Usamos el tipo Destination para el estado
+  // Parámetros de paginación
+  const ITEMS_PER_PAGE = 6;
+  const [currentPage, setCurrentPage] = useState(0);
 
   // Fetch de destinos desde Supabase
+  const { sitios, getSitios } = useSitio()
   useEffect(() => {
-    const fetchDestinations = async () => {
-      const { data, error } = await supabase
-        .from('SITIO TURISTICO')  // Asegúrate de que sea el nombre de tu tabla
-        .select('*')
-        .range(0,12)
+    const start = currentPage * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE - 1;
+    getSitios(filterType !== "All" ? filterType : undefined, start, end)
+    console.log(start,end);
+    
+  }, [filterType, currentPage]);
 
+  useEffect(() => {
+    console.log(sitios);
+  }, [sitios]);
+  // filter recomendations but the ones that are on the cache of app
+  // const filteredDestinations = destinations.filter(dest =>
+  //   dest.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+  //   (filterType === 'All' || dest.type === filterType)
+  // )
 
-      if (error) {
-        console.error('Error fetching destinations:', error)
-      } else {
-        // Mapeamos los datos usando la interfaz definida
-        const mappedData: Destination[] = (data as DestinationFromDB[]).map(dest => ({
-          id: dest.id,
-          name: dest.Titulo,
-          description: dest.Descripcio || 'Sin descripcion disponible',
-          imageUrl: dest.Imagen_pri|| '/assets/images/OIP.jpg',
-          rating: parseFloat(dest.Valoracion), // Convertimos la valoración a número
-          type: dest.Categoria,
-        }))
-        setDestinations(mappedData)
-      }
-    }
-
-    fetchDestinations()
-  }, [])
-
-  const filteredDestinations = destinations.filter(dest =>
-    dest.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-    (filterType === 'All' || dest.type === filterType)
-  )
-
-  const featuredDestinations = destinations.slice(0, 3)
+  const featuredDestinations = sitios.slice(0, 3)
 
   const nextSlide = () => {
     setCarouselIndex((prevIndex) => (prevIndex + 1) % featuredDestinations.length)
@@ -80,12 +71,16 @@ export default function Home() {
     setCarouselIndex((prevIndex) => (prevIndex - 1 + featuredDestinations.length) % featuredDestinations.length)
   }
 
+  // Funciones de navegación
+  const goToNextPage = () => setCurrentPage((prevPage) => prevPage + 1)
+  const goToPreviousPage = () => setCurrentPage((prevPage) => Math.max(prevPage - 1, 0))
+
   return (
     <div className="flex flex-col min-h-screen">
       <header className="px-4 lg:px-6 h-14 flex items-center justify-between">
         <Link className="flex items-center justify-center" href="/">
           <MapPin className="h-6 w-6 mr-2" />
-          <span className="text-lg font-bold">TravelGuide</span>
+          <span className="text-lg font-bold">Valle travel</span>
         </Link>
         <nav className="flex gap-4 sm:gap-6">
           <Link className="text-sm font-medium hover:underline underline-offset-4" href="/destinations">
@@ -134,7 +129,9 @@ export default function Home() {
                       <SelectItem value="All">Todos los tipos</SelectItem>
                       <SelectItem value="gastronomico">Gastronomico</SelectItem>
                       <SelectItem value="natural">Natural</SelectItem>
-                      <SelectItem value="hoteles">Hoteles</SelectItem>
+                      <SelectItem value="hosteleria">Hoteles</SelectItem>
+                      <SelectItem value="cultural">Cultural</SelectItem>
+
                     </SelectContent>
                   </Select>
                 </form>
@@ -148,31 +145,33 @@ export default function Home() {
             <div className="relative">
               <div className="overflow-hidden">
                 <div className="flex transition-transform duration-300 ease-in-out" style={{ transform: `translateX(-${carouselIndex * 100}%)` }}>
-                  {featuredDestinations.map((destination) => (
-                    <div key={destination.id} className="w-full flex-shrink-0">
-                      <Card className="overflow-hidden">
-                        <CardHeader className="p-0">
-                          <Image
-                            src={destination.imageUrl}
-                            alt={destination.name}
-                            width={600}
-                            height={400}
-                            className="w-full h-64 object-cover"
-                          />
-                        </CardHeader>
-                        <CardContent className="p-4">
-                          <CardTitle className="text-xl mb-2">{destination.name}</CardTitle>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{destination.description}</p>
-                        </CardContent>
-                        <CardFooter className="p-4">
-                          <Button asChild>
-                            <Link href={`/destinations/${destination.id}`}>Explorar</Link>
-                          </Button>
-                        </CardFooter>
-                      </Card>
-                    </div>
-                  ))}
+
+                  {sitios.map((sitio) => {
+
+                    const {
+                      id: id,
+                      Titulo: name,
+                      Descripcion: descripcion,
+                      Categoria: categoria,
+                      Valoracion: valoracion,
+                      Imagen_pri: Imagen,
+                    } = sitio
+
+                    return (
+                      <div key={id} className="w-full flex-shrink-0">
+                        <MainCarrouselCard key={id} id={id}
+                          Titulo={name}
+                          Descripcion={descripcion || "sin descripcion disponible"}
+                          Valoracion={valoracion || "sin puntuar"}
+                          Categoria={categoria}
+                          Imagen_pri={Imagen || "/assets/images/OIP.jpg"}>
+                        </MainCarrouselCard>
+                      </div>
+                    )
+                  }
+                  )}
                 </div>
+
               </div>
               <Button variant="outline" className="absolute top-1/2 left-4 transform -translate-y-1/2" onClick={prevSlide}>
                 <ChevronLeft className="h-6 w-6" />
@@ -183,39 +182,56 @@ export default function Home() {
             </div>
           </div>
         </section>
-        <section className="w-full py-12 md:py-24 lg:py-32">
+        <section className="w-full py-12 md:py-24 lg:py-32 justify-center items-center">
           <div className="container px-4 md:px-6">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-center mb-12">Popular Destinations</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredDestinations.map((destination) => (
-                <Card key={destination.id} className="overflow-hidden">
-                  <CardHeader className="p-0">
-                    <Image
-                      src={destination.imageUrl}
-                      alt={destination.name}
-                      width={600}
-                      height={400}
-                      className="w-full h-48 object-cover"
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-center mb-12">
+              Destinos Populares
+            </h2>
+            <div className="flex items-center justify-center min-h-screen">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {sitios.map((sitio) => {
+                  const {
+                    id: id,
+                    Titulo: name,
+                    Descripcion: descripcion,
+                    Categoria: categoria,
+                    Valoracion: valoracion,
+                    Imagen_pri: Imagen,
+                  } = sitio;
+                  return (
+                    <MainSitioCard
+                      key={sitio.id}
+                      Titulo={name}
+                      Descripcion={descripcion || "sin descripcion disponible"}
+                      Categoria={categoria}
+                      Valoracion={valoracion || "sin puntuar"}
+                      Imagen_pri={Imagen || "/assets/images/OIP.jpg"}
                     />
-                  </CardHeader>
-                  <CardContent className="p-4">
-                    <CardTitle className="text-xl mb-2">{destination.name}</CardTitle>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{destination.description}</p>
-                    <div className="flex items-center">
-                      <span className="text-yellow-500 mr-1">★</span>
-                      <span>{destination.rating.toFixed(1)}</span>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="p-4">
-                    <Button asChild className="w-full">
-                      <Link href={`/destinations/${destination.id}`}>Learn More</Link>
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
+                  );
+                })}
+              </div>
+
+            </div>
+            <div className="flex justify-center mt-8 gap-4">
+              <Button
+                variant="outline"
+                onClick={goToPreviousPage}
+                disabled={currentPage === 0}
+              >
+                Anterior
+              </Button>
+              <span>Página {currentPage + 1}</span>
+              <Button
+                variant="outline"
+                onClick={goToNextPage}
+                disabled={sitios.length < ITEMS_PER_PAGE}
+              >
+                Siguiente
+              </Button>
             </div>
           </div>
         </section>
+
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
         <p className="text-xs text-gray-500 dark:text-gray-400">© 2023 TravelGuide Inc. All rights reserved.</p>

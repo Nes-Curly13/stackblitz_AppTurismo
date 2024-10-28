@@ -4,7 +4,23 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  images: { unoptimized: true },
+  images: { unoptimized: true,
+    remotePatterns: [
+      
+      {
+        protocol: 'https',
+        hostname: '**.googleusercontent.com',
+        search: '',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.',
+        search: '',
+      },
+    ],
+    
+   },
+  
 };
 
 module.exports = nextConfig;
