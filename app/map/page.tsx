@@ -200,6 +200,7 @@ export default function ExplorePage() {
               </TabsContent>
             </Tabs>
           </div>
+          
           <div className="lg:col-span-2">
             <Card className="h-[calc(100vh-12rem)]">
               <CardContent className="p-0 h-full">
