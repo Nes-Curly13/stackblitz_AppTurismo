@@ -347,7 +347,7 @@ export default function ExplorePage() {
           </div>
           <div className="mt-8 md:mt-0 md:order-1">
             <p className="text-center text-sm text-gray-500">
-              &copy; 2023 TravelGuide, Inc. All rights reserved.
+              &copy; 2024 Valle Travel
             </p>
           </div>
         </div>
